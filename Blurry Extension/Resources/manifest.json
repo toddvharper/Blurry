@@ -35,13 +35,6 @@
         }
     },
 
-    "web_accessible_resources": [
-        {
-            "resources": ["controls.html"],
-            "matches": ["<all_urls>"] 
-        }
-    ],
-
     "permissions": [
         "activeTab",
         "scripting"

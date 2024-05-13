@@ -1,37 +1,33 @@
-let blurIntensity = 0;
-let existingClickListener = false;
+let blurIntensity = 5;
 
 // Listen for messages from the background script
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.action === "extensionButtonClicked") {
-        const draggableDiv = document.getElementById('draggable-div');
+        const draggableDiv = document.getElementById('blurry-draggable-div');
         if (draggableDiv) {
             closeExtension(draggableDiv);
         } else {
             openExtension();
         }
     }
-
-    if (request.action === "getBlurIntensity" && blurIntensity !== 0) {
-        sendResponse({ intensity: blurIntensity });
-    } else if (request.action === "getBlurIntensity") {
-        sendResponse({ intensity: 10 });
-    }
 });
 
 // Functions to perform when the extension is opened
 function openExtension() {
     appendHeadCode();
+    addBlurryListeners();
     drawExtensionWindow();
 }
 
 // Functions to perform when the extension is closed
 function closeExtension(div) {
-    removeDraggableDiv(div);
+    removeExtensionWindow(div);
+    removeBlurryListeners();
     removeHeadCode();
 }
 
+// Append scripts and CSS to the page's head code as needed
 function appendHeadCode() {
     
     // Append the Font Awesome script to the head
@@ -43,13 +39,20 @@ function appendHeadCode() {
     // Append the CSS to the head
     const style = document.createElement("style");
     style.innerHTML = `
-        #draggable-div {
+        .blurry-extension-window .paragraph {
+            margin: 0;
+            padding: 0;
+        }
+
+        #blurry-draggable-div {
+            padding: 0;
+            margin: 0;
             font-family: system-ui;
+            font-size: 16px;
             color: black;
             background-color: white;
             height: 100px;
-            width: 450px;
-            padding: 0 30px 0 10px;
+            width: 600px;
             position: fixed;
             bottom: 50px;
             left: 50%;
@@ -61,28 +64,53 @@ function appendHeadCode() {
             flex-flow: row nowrap;
             justify-content: space-between;
             align-items: center;
-            gap: 20px;
+            align-content: center;
         }
 
-        #draggable-div-handle {
+        #blurry-draggable-div-handle {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
             cursor: move;
+            width: 10%;
+            height: 100%;
+            border-radius: 50px 0 0 50px;
         }
 
-        #draggable-div-slider,
-        #draggable-div-blur-toggle {
+        #blurry-draggable-div-content {
+            display: flex;
+            flex-flow: row nowrap;
+            justify-content: space-around;
+            gap: 15px;
+            width: 90%;
+            align-items: center;
+        }
+
+        #blurry-draggable-div-intensity-slider-group {
             display: flex;
             flex-flow: column nowrap;
+            justify-content: center;
+            align-items: center;
         }
 
-        #blur-intensity-slider {
+        #blurry-blur-intensity-slider {
             display: flex;
             flex-flow: row nowrap;
             gap: 10px;
+        }
+
+        #blurry-draggable-div-blur-toggle-group {
+            display: flex;
+            flex-flow: column nowrap;
+            justify-content: center;
+            align-items: center;
         }
     `;
     document.head.appendChild(style);
 }
 
+// Remove scripts and CSS from the page's head code as needed
 function removeHeadCode() {
     const script = document.querySelector("script[src='https://kit.fontawesome.com/1ea4dc5d95.js']");
     script.remove();
@@ -90,132 +118,133 @@ function removeHeadCode() {
 
 // Create a div that can be dragged around
 function drawExtensionWindow() {
-    const testDiv = document.createElement("div");
-    testDiv.id = "draggable-div";
-    document.body.appendChild(testDiv);
+    const blurryExtensionWindow = document.createElement("div");
+    blurryExtensionWindow.id = "blurry-draggable-div";
+    blurryExtensionWindow.classList.add("blurry-extension-window");
+    document.body.appendChild(blurryExtensionWindow);
     // Append an HTML file as a child to the div
     let controlsHTML = `
-    <script src="https://kit.fontawesome.com/1ea4dc5d95.js" crossorigin="anonymous"></script>
-    <div id="draggable-div-handle"><i class="fa-solid fa-ellipsis-vertical fa-2x"></i></div>
-    <div id="draggable-div-slider">
-        <label for="blur-intensity">Blur Intensity:</label>
-        <div id="blur-intensity-slider">
-            <p>-</p>
-            <input type="range" id="blur-intensity" name="blur-intensity" min="1" max="20" value="10">
-            <p>+</p>
+    <div id="blurry-draggable-div-handle">
+        <i class="fa-solid fa-ellipsis-vertical fa-2x"></i>
+    </div>
+    <div id="blurry-draggable-div-content">
+        <div id="blurry-draggable-div-intensity-slider-group">
+            <label for="blurry-blur-intensity">Blur Intensity:</label>
+            <div id="blurry-blur-intensity-slider">
+                <div class="paragraph">-</div>
+                <input type="range" id="blurry-blur-intensity" name="blurry-blur-intensity" min="1" max="20" value="${blurIntensity}">
+                <div class="paragraph">+</div>
+            </div>
+            <div class="paragraph">
+                <output id="blurry-blur-numeric-display">${blurIntensity}</output>
+            </div>
         </div>
-        <p><output id="blur-numeric-display">10</output></p>
+        <div id="blurry-draggable-div-blur-toggle-group">
+            <label for="blurry-toggle-blur">Toggle Existing Blurs:</label>
+            <input type="checkbox" id="blurry-toggle-blur">
+        </div>
+        <i class="fa-solid fa-check fa-1x"></i>
     </div>
-    <div id="draggable-div-blur-toggle">
-        <input type="checkbox" id="toggle-blur">Toggle Blur On Click</input>
-    </div>
-    <i class="fa-solid fa-check"></i>
     `;
-    document.getElementById("draggable-div").innerHTML = controlsHTML;
+    document.getElementById("blurry-draggable-div").innerHTML = controlsHTML;
+    console.log("Extension window created");
 
     // Make the DIV element draggable:
-    dragElement(document.getElementById("draggable-div"));
+    dragElement(document.getElementById("blurry-draggable-div"));
+    console.log("Extension window draggable.");
+
+    // Add an event listener to the slider
+    console.log("Adding event listener to slider.")
+    document.getElementById("blurry-blur-intensity").addEventListener("input", (event) => {
+        blurIntensity = event.target.value;
+        document.getElementById("blurry-blur-numeric-display").textContent = blurIntensity;
+
+    });
 }
 
-function removeDraggableDiv(div) {
+function removeExtensionWindow(div) {
     div.remove();
 }
 
-function blurOnClick(event) {
-    if (event.target.style.filter.includes('blur(')) {
-        event.target.style.filter = 'none';
-    } else {
-        event.target.style.filter = `blur(${blurIntensity}px)`;
-    }
-}
-
-function updateBlurIntensity(intensity) {
-    blurIntensity = intensity;
-
-    if (existingClickListener) {
-        // Remove the existing listener
-        document.querySelector('body').removeEventListener('click', blurOnClick);
-    }
-
-    document.addEventListener('click', blurOnClick);
-    existingClickListener = true;
-}
-
 function dragElement(elmnt) {
-  var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-  if (document.getElementById("draggable-div-handle")) {
-    // if present, the header is where you move the DIV from:
-    document.getElementById("draggable-div-handle").onmousedown = dragMouseDown;
-  } else {
-    // otherwise, move the DIV from anywhere inside the DIV:
-    elmnt.onmousedown = dragMouseDown;
-  }
+    var pos1 = 0,
+        pos2 = 0,
+        pos3 = 0,
+        pos4 = 0;
+    if (document.getElementById("blurry-draggable-div-handle")) {
+        // if present, the header is where you move the DIV from:
+        document.getElementById("blurry-draggable-div-handle").onmousedown =
+            dragMouseDown;
+    } else {
+        // otherwise, move the DIV from anywhere inside the DIV:
+        elmnt.onmousedown = dragMouseDown;
+    }
 
-  function dragMouseDown(e) {
-    e = e || window.event;
-    e.preventDefault();
-    // get the mouse cursor position at startup:
-    pos3 = e.clientX;
-    pos4 = e.clientY;
-    document.onmouseup = closeDragElement;
-    // call a function whenever the cursor moves:
-    document.onmousemove = elementDrag;
-  }
+    function dragMouseDown(e) {
+        e = e || window.event;
+        e.preventDefault();
+        // get the mouse cursor position at startup:
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        // call a function whenever the cursor moves:
+        document.onmousemove = elementDrag;
+    }
 
-  function elementDrag(e) {
-    e = e || window.event;
-    e.preventDefault();
-    // calculate the new cursor position:
-    pos1 = pos3 - e.clientX;
-    pos2 = pos4 - e.clientY;
-    pos3 = e.clientX;
-    pos4 = e.clientY;
-    // set the element's new position:
-    elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-    elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-  }
+    function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        // calculate the new cursor position:
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        // set the element's new position:
+        elmnt.style.top = elmnt.offsetTop - pos2 + "px";
+        elmnt.style.left = elmnt.offsetLeft - pos1 + "px";
+    }
 
-  function closeDragElement() {
-    // stop moving when mouse button is released:
-    document.onmouseup = null;
-    document.onmousemove = null;
-  }
+    function closeDragElement() {
+        // stop moving when mouse button is released:
+        document.onmouseup = null;
+        document.onmousemove = null;
+    }
 }
 
-/*
+function addBlurryListeners() {
+    document.addEventListener("click", blurOnClick);
+    document.addEventListener("mouseover", borderOnMouseOver);
+    document.addEventListener("mouseout", borderOnMouseOut);
+}
 
-document.addEventListener('click', (event) => {
-    if (event.target.style.filter.includes('blur(')) {
+function removeBlurryListeners() {
+    document.removeEventListener("click", blurOnClick);
+    document.removeEventListener("mouseover", borderOnMouseOver);
+    document.removeEventListener("mouseout", borderOnMouseOut);
+}
+
+function blurOnClick(event) {
+    const extensionWindow = document.getElementById("blurry-draggable-div");
+    if (event.target.classList.contains("blurry-element") && event.target.style.filter.includes(`blur(${blurIntensity}px)`)) {
         event.target.style.filter = 'none';
-    } else {
-        event.target.style.filter = 'blur(10px)';
-    }
-});
-
-// Get the intensity of the blur from the background script
-browser.runtime.sendMessage({ action: "getBlurIntensity" }).then((intensity) => {
-    // Convert the intensity to a valid CSS filter value
-    const blurValue = `blur(${intensity}px)`;
-});
-
-let blurOnClick = false;
-
-// Function to blur elements on click
-function blurOnClickFunction(event) {
-    if (event.target.style.filter === "blur(10px)") {
-        event.target.style.filter = "none";
-    } else {
-        event.target.style.filter = "blur(10px)";
+        event.target.classList.remove("blurry-element");
+    } else if (event.target.classList.contains("blurry-element")) {
+        event.target.style.filter = `blur(${blurIntensity}px)`;
+    } else if (event.target !== extensionWindow && !extensionWindow.contains(event.target)) {
+        event.target.style.filter = `blur(${blurIntensity}px)`;
+        event.target.classList.add("blurry-element");
     }
 }
 
-
-safari.self.addListener("message", handleMessage);
-
-function handleMessage(event) {
-    if (event.name === "blur") {
-        const data = event.message;
-        console.log('Received data: ', data);
+function borderOnMouseOver(event) {
+    const extensionWindow = document.getElementById("blurry-draggable-div");
+    if (event.target !== extensionWindow && !extensionWindow.contains(event.target)) {
+        event.target.style.border = "2px solid lightblue";
+        event.target.style.borderRadius = "5px";
     }
 }
-*/
+
+function borderOnMouseOut(event) {
+    event.target.style.border = "";
+    event.target.style.borderRadius = "";
+}
