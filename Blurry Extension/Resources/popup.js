@@ -1,5 +1,3 @@
-// Description: This script is executed when the popup is opened.
-// It sets up the event listeners for the popup.
 
 browser.tabs.query({ active: true, currentWindow: true }, function(tabs) {
     const tab = tabs[0];

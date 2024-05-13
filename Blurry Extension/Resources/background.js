@@ -1,10 +1,7 @@
-browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    console.log("Received request: ", request);
+// Description: Background script for the extension.
 
-    if (request.greeting === "hello")
-        sendResponse({ farewell: "goodbye" });
-});
-
+// Listen for the extension button being clicked
 browser.action.onClicked.addListener((tab) => {
+    // Send a message to the content script
     browser.tabs.sendMessage(tab.id, { action: "extensionButtonClicked" });
 });
