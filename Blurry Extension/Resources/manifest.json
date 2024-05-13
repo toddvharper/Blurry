@@ -2,8 +2,8 @@
     "manifest_version": 3,
     "default_locale": "en",
 
-    "name": "__MSG_extension_name__",
-    "description": "__MSG_extension_description__",
+    "name": "Blurry",
+    "description": "Blurry is a browser extension that blurs the content of a webpage to help you focus on the task at hand or hide sensitive data while screen sharing.",
     "version": "1.0",
 
     "icons": {
@@ -24,7 +24,7 @@
     }],
 
     "action": {
-        "default_popup": "popup.html",
+        "default_title": "Blurry",
         "default_icon": {
             "16": "images/toolbar-icon-16.png",
             "19": "images/toolbar-icon-19.png",
@@ -35,5 +35,8 @@
         }
     },
 
-    "permissions": [ "activeTab" ]
+    "permissions": [
+        "activeTab",
+        "scripting"
+    ]
 }
